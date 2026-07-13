@@ -6,6 +6,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -17,8 +18,9 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    // Must be a 256-bit alphanumeric secret string kept secure in application.properties
-    private final String SECRET_KEY = "SECRET_KEY_FOR_LOCAL_DEV_SHOULD_BE_EXTREMELY_LONG_AND_SECURE_KEY";
+    @Value("${application.security.jwt.secret-key}")
+    private String secretKey;
+
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -65,7 +67,7 @@ public class JwtService {
     }
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }

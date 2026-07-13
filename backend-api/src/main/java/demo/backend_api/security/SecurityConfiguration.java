@@ -24,7 +24,11 @@ public class SecurityConfiguration {
         http
             .csrf(AbstractHttpConfigurer::disable) // Disable since we use stateless JWTs
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll() // Open login/registration endpoints
+                .requestMatchers(
+                    "/api/auth/**",
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/swagger-ui.html").permitAll() // Open login/registration endpoints
                 .anyRequest().authenticated()               // Everything else requires a valid token
             )
             .sessionManagement(session -> session

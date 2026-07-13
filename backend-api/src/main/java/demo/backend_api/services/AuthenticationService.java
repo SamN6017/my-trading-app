@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.ZonedDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +30,7 @@ public class AuthenticationService {
             .email(request.getEmail())
             .password(passwordEncoder.encode(request.getPassword()))
             .cashBalance(BigDecimal.valueOf(100000.00)) // Starting simulator balance
+            .createdAt(ZonedDateTime.now())
             .build();
 
         userRepository.save(user);

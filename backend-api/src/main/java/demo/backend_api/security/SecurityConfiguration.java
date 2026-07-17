@@ -26,10 +26,11 @@ public class SecurityConfiguration {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/api/auth/**",
+                    "/api/prices/**",
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
-                    "/swagger-ui.html").permitAll() // Open login/registration endpoints
-                .anyRequest().authenticated()               // Everything else requires a valid token
+                    "/swagger-ui.html").permitAll()
+                .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Don't hold server side sessions

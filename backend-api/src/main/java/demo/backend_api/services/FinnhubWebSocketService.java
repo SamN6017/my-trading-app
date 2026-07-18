@@ -1,99 +1,120 @@
-package demo.backend_api.services;
+package demo.backend_api.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import demo.backend_api.dto.FinnhubResponse;
 import demo.backend_api.dto.FinnhubTradeData;
+import demo.backend_api.model.Stock;
 import demo.backend_api.repository.StockRepository;
-import jakarta.annotation.PostConstruct;
+import demo.backend_api.services.MarketDataBufferService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.client.WebSocketClient;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class FinnhubWebSocketService {
+public class FinnhubWebSocketService extends TextWebSocketHandler {
 
+    private final MarketDataBufferService marketDataBufferService;
     private final StockRepository stockRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${finnhub.api.key}")
     private String finnhubApiKey;
 
-    @PostConstruct
+    private WebSocketSession currentSession;
+
+    @EventListener(ApplicationReadyEvent.class)
     public void connectToFinnhub() {
-        String url = "wss://ws.finnhub.io?token=" + finnhubApiKey;
-        StandardWebSocketClient client = new StandardWebSocketClient();
-
-        log.info("Initiating WebSocket handshake to Finnhub...");
-
         try {
-            client.execute(new TextWebSocketHandler() {
+            log.info("Initializing Finnhub Real-Time Ticker WebSocket client...");
+            WebSocketClient client = new StandardWebSocketClient();
+            String webSocketUrl = "wss://ws.finnhub.io?token=" + finnhubApiKey;
 
-                @Override
-                public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-                    log.info("====== WebSocket Connection Established Successfully ======");
-
-                    // Pull active symbols from your DB
-                    List<String> symbols = stockRepository.findAllActiveSymbols();
-
-                    // Finnhub free tier limit is 50 symbols
-                    int limit = Math.min(symbols.size(), 50);
-                    log.info("Found {} active stocks in DB. Subscribing to the first {}...", symbols.size(), limit);
-
-                    for (int i = 0; i < limit; i++) {
-                        String symbol = symbols.get(i);
-                        String subscribePayload = "{\"type\":\"subscribe\",\"symbol\":\"" + symbol + "\"}";
-                        session.sendMessage(new TextMessage(subscribePayload));
-                    }
-                    log.info("Sent subscriptions for all {} tickers.", limit);
-                }
-
-                @Override
-                protected void handleTextMessage(WebSocketSession session, TextMessage message) {
-                    try {
-                        String payload = message.getPayload();
-
-                        // Parse JSON into our DTO structures
-                        FinnhubResponse response = objectMapper.readValue(payload, FinnhubResponse.class);
-
-                        if ("trade".equals(response.getType()) && response.getTradeList() != null) {
-                            for (FinnhubTradeData trade : response.getTradeList()) {
-                                // 🟢 CLEAR VISUAL CONSOLE PRINT
-//                                System.out.printf("[📈 TRADE TICK] Symbol: %-6s | Price: $%8.2f | Volume: %-5d%n",
-//                                    trade.getSymbol(), trade.getPrice(), trade.getVolume());
-                            }
-                        } else if ("ping".equals(response.getType())) {
-                            log.debug("Received heartbeat ping from Finnhub");
-                        }
-                    } catch (Exception e) {
-                        log.error("Failed to parse incoming market payload: {}", e.getMessage());
-                    }
-                }
-
-                @Override
-                public void handleTransportError(WebSocketSession session, Throwable exception) {
-                    log.error("WebSocket transport error occurred: ", exception);
-                }
-
-                @Override
-                public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-                    log.warn("WebSocket connection closed. Status: {}", status);
-                }
-
-            }, url);
-
+            client.execute(this, webSocketUrl).get();
         } catch (Exception e) {
-            log.error("Unable to execute WebSocket connection: ", e);
+            log.error("Fatal failure attempting initialization of Finnhub stream handler", e);
+        }
+    }
+
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) {
+        this.currentSession = session;
+        log.info("WebSocket tunnel to Finnhub established safely.");
+
+        // Pull active tracked master stock catalog from your PostgreSQL RDS instance
+        List<Stock> activeStocks = stockRepository.findAll().stream()
+            .filter(Stock::getIsActive)
+            .toList();
+
+        log.info("Registering subscriptions for {} active tracker items...", activeStocks.size());
+        for (Stock stock : activeStocks) {
+            subscribeToSymbol(stock.getSymbol());
+        }
+    }
+
+    @Override
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) {
+        try {
+            String payload = message.getPayload();
+            FinnhubResponse response = objectMapper.readValue(payload, FinnhubResponse.class);
+
+            // Verify payload type matches trade actions and list is not empty
+            if ("trade".equals(response.getType()) && response.getTradeList() != null) {
+                for (FinnhubTradeData trade : response.getTradeList()) {
+
+                    // ⚡ Offload instantly to your AWS ElastiCache buffer queue
+                    marketDataBufferService.bufferTick(trade);
+
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to parse incoming market payload: {}", e.getMessage());
+        }
+    }
+
+    @Override
+    public void handleTransportError(WebSocketSession session, Throwable exception) {
+        log.error("WebSocket transport level failure experienced on stream channel", exception);
+    }
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+        log.warn("Finnhub stream socket connection closed. Status code details: {}", status);
+        this.currentSession = null;
+
+        // Basic reconnection trigger fallback mechanism
+        log.info("Triggering stream reconnect sequence...");
+        connectToFinnhub();
+    }
+
+    /**
+     * Sends a raw subscription text frame down the open WebSocket pipeline.
+     */
+    private void subscribeToSymbol(String symbol) {
+        if (currentSession != null && currentSession.isOpen()) {
+            try {
+                String subPayload = String.format("{\"type\":\"subscribe\",\"symbol\":\"%s\"}", symbol);
+                currentSession.sendMessage(new TextMessage(subPayload));
+                log.info("Successfully subscribed to real-time feed for symbol: {}", symbol);
+            } catch (IOException e) {
+                log.error("Failed downstream frame dispatch for channel subscription: " + symbol, e);
+            }
+        } else {
+            log.warn("Subscription request ignored for {}. Session closed or invalid.", symbol);
         }
     }
 }

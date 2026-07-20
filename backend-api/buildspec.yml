@@ -11,15 +11,13 @@ phases:
 
   pre_build:
     commands:
-      - echo "Navigating to backend directory..."
-      # Replace 'backend' with your actual backend folder name if different
-      - cd backend
+      - echo "Navigating to backend-api directory..."
+      - cd backend-api
       - chmod +x mvnw || true
 
   build:
     commands:
       - echo "Building Spring Boot Application JAR package..."
-      # Using ./mvnw ensures the wrapper version matches your local setup
       - ./mvnw clean package -DskipTests
 
   post_build:
@@ -28,8 +26,7 @@ phases:
 
 artifacts:
   files:
-    # Explicitly point to the target directory inside your backend folder
-    - backend/target/*.jar
+    - backend-api/target/*.jar
   discard-paths: yes
 
 cache:

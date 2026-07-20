@@ -69,10 +69,11 @@ public class MarketDataBufferService {
                 log.error("Error decoding while pushing data in db from redis ", e);
             }
 
-            if(!batch.isEmpty()){
-                todaysPriceRepository.saveAll(batch);
-                log.info("Added {} todays price in db from redis ", batch.size());
-            }
+
+        }
+        if(!batch.isEmpty()){
+            todaysPriceRepository.saveAll(batch);
+            log.info("Added {} todays price in db from redis ", batch.size());
         }
     }
 

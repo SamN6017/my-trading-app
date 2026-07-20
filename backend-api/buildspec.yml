@@ -11,14 +11,16 @@ phases:
 
   pre_build:
     commands:
-      - echo "Pre-build phase initialized on `date`..."
-      - echo "Running clean up prior to packaging..."
+      - echo "Navigating to backend directory..."
+      # Replace 'backend' with your actual backend folder name if different
+      - cd backend
+      - chmod +x mvnw || true
 
   build:
     commands:
       - echo "Building Spring Boot Application JAR package..."
-      # -DskipTests speeds up deployment; remove flag if you want JUnit tests to run in pipeline
-      - mvn clean package -DskipTests
+      # Using ./mvnw ensures the wrapper version matches your local setup
+      - ./mvnw clean package -DskipTests
 
   post_build:
     commands:
@@ -26,11 +28,10 @@ phases:
 
 artifacts:
   files:
-    # Captures the compiled executable JAR file produced in the target directory
-    - target/*.jar
+    # Explicitly point to the target directory inside your backend folder
+    - backend/target/*.jar
   discard-paths: yes
 
 cache:
   paths:
-    # Caches local Maven repository to dramatically speed up future builds in CodeBuild
     - '/root/.m2/**/*'

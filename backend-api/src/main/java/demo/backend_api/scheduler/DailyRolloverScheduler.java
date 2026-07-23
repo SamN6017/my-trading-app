@@ -32,12 +32,11 @@ public class DailyRolloverScheduler {
     private String finnhubApiKey;
 
     // Runs every weekday at midnight (Monday through Friday)
-//    @Scheduled(cron = "0 0 0 * * MON-FRI")
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(cron = "0 0 0 * * MON-FRI")
     @Transactional
     public void performDailyRollover() {
-          log.info("⏰ Testing EOD Rollover...");
-//        log.info("⏰ Starting EOD Rollover: Fetching daily candles from Finnhub...");
+
+        log.info("⏰ Starting EOD Rollover: Fetching daily candles from Finnhub...");
 
         List<Stock> activeStocks = stockRepository.findAll();
 

@@ -22,6 +22,7 @@ public class PriceHistoryService {
         return result.stream().map(entity -> {
             PriceHistoryResponse priceHistoryResponse = new PriceHistoryResponse();
             priceHistoryResponse.historyId = entity.getHistoryId();
+            priceHistoryResponse.stock = entity.getStock();
             priceHistoryResponse.recordedDate = entity.getRecordedDate();
             priceHistoryResponse.openPrice = entity.getOpenPrice();
             priceHistoryResponse.closePrice = entity.getClosePrice();
@@ -36,7 +37,7 @@ public class PriceHistoryService {
         if(range == null){
             return LocalDate.now().minusYears(1);
         }
-        return switch (range.toUpperCase()) {
+        return switch (range.trim().toUpperCase()) {
             case "1W" -> LocalDate.now().minusWeeks(1);
             case "3M" -> LocalDate.now().minusMonths(3);
             case "6M" -> LocalDate.now().minusMonths(6);

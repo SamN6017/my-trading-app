@@ -2,6 +2,7 @@ package demo.backend_api.repository;
 
 import demo.backend_api.model.PriceHistory;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -11,4 +12,11 @@ import java.util.List;
 public interface PriceHistoryRepository extends JpaRepository<PriceHistory, Long> {
 
     List<PriceHistory> findByStockSymbolAndRecordedDateAfterOrderByRecordedDateAsc(String symbol, LocalDate date);
+
+    @Query(value = """
+    SELECT * 
+    FROM price_history 
+    WHERE date = (SELECT MAX(date) FROM price_history)
+    """, nativeQuery = true)
+    List<PriceHistory> findLatestClosingPricesForAllStocks();
 }

@@ -13,4 +13,8 @@ public class StockResponse {
     private String symbol;
     private String companyName;
     private String sector;
+    private Double currentPrice;
+    private Double previousClose;
+    private Double change;
+    private Double changePercent;
 }

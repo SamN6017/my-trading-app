@@ -13,4 +13,6 @@ import java.util.List;
 public interface TodaysPriceRepository extends JpaRepository<TodaysPrice, TodaysPriceId> {
     @Query("SELECT t FROM TodaysPrice t WHERE t.symbol = :symbol ORDER BY t.timestamp ASC")
     List<TodaysPrice> findBySymbolOrderByTimestampAsc(@Param("symbol") String symbol);
+
+    Double findTopBySymbolOrderByTimestampDesc(String symbol);
 }

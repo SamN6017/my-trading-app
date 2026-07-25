@@ -23,6 +23,7 @@ public class PriceHistoryService {
             PriceHistoryResponse priceHistoryResponse = new PriceHistoryResponse();
             priceHistoryResponse.historyId = entity.getHistoryId();
             priceHistoryResponse.recordedDate = entity.getRecordedDate();
+            priceHistoryResponse.openPrice = entity.getOpenPrice();
             priceHistoryResponse.closePrice = entity.getClosePrice();
             priceHistoryResponse.highPrice = entity.getHighPrice();
             priceHistoryResponse.lowPrice = entity.getLowPrice();

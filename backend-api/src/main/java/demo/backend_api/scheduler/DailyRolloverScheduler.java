@@ -37,7 +37,7 @@ public class DailyRolloverScheduler {
     @Value("${polygon.api.key}")
     private String polygonApiKey;
 
-    @Scheduled(cron = "0 0 0 * * MON-FRI", zone = "America/New_York")
+    @Scheduled(cron = "0 0 0 * * TUE-SAT", zone = "America/New_York")
     @Transactional
     public void performDailyRollover() {
         // Calculate target trading day (yesterday, or Friday if triggered on Monday)
@@ -48,7 +48,7 @@ public class DailyRolloverScheduler {
             targetDate = targetDate.minusDays(1);
         }
 
-        String formattedDate = targetDate.format(DateTimeFormatter.ISO_LOCAL_DATE); // e.g. "2026-07-22"
+        String formattedDate = targetDate.format(DateTimeFormatter.ISO_LOCAL_DATE);
         log.info("⏰ Starting EOD Rollover: Fetching Massive/Polygon Grouped Daily candles for date: {}", formattedDate);
 
         try {

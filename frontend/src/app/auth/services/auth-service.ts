@@ -8,8 +8,8 @@ import { Observable, tap } from 'rxjs';
 })
 export class AuthService {
   private http = inject(HttpClient);
-  // private readonly API_URL = 'http://my-trading-app-env.eba-imuwyubr.us-east-2.elasticbeanstalk.com/api/auth'
-  private readonly API_URL = 'http://localhost:8080/api/auth'
+  private readonly API_URL = 'http://my-trading-app-env.eba-imuwyubr.us-east-2.elasticbeanstalk.com/api/auth'
+  // private readonly API_URL = 'http://localhost:8080/api/auth'
 
   register(data : RegisterRequest): Observable<any>{
     return this.http.post(`${this.API_URL}/register`, data);

@@ -1,0 +1,75 @@
+<div class="container py-5">
+  
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+      <h2 class="fw-bold text-dark mb-1">Market Overview</h2>
+      <p class="text-muted small mb-0">Track real-time prices for active market stocks</p>
+    </div>
+    
+    <div class="search-box" style="max-width: 340px; width: 100%;">
+      <input 
+        type="text" 
+        class="form-control form-control-lg fs-6 rounded-3 shadow-sm" 
+        placeholder="Search symbol, company, or sector..." 
+        [value]="searchQuery()"
+        (input)="onSearchInput($event)" 
+      />
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p class="text-muted small mt-2">Loading stock catalog...</p>
+    </div>
+  } @else {
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th scope="col" class="ps-4">Ticker</th>
+              <th scope="col">Company Name</th>
+              <th scope="col">Sector</th>
+              <th scope="col" class="text-end">Current Price</th>
+              <th scope="col" class="text-end">Prev. Close</th>
+              <th scope="col" class="text-end pe-4">24h Change</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (stock of filteredStocks(); track stock.symbol) {
+              <tr 
+                (click)="openChartModal(stock)" 
+                class="cursor-pointer">
+                <td class="ps-4 fw-bold text-primary">{{ stock.symbol }}</td>
+                <td class="fw-medium text-dark">{{ stock.companyName }}</td>
+                <td>
+                  <span class="badge bg-light text-secondary border">{{ stock.sector }}</span>
+                </td>
+                <td class="text-end fw-bold">${{ stock.currentPrice | number:'1.2-2' }}</td>
+                <td class="text-end text-muted">${{ stock.previousClose | number:'1.2-2' }}</td>
+                <td class="text-end pe-4">
+                  <span 
+                    class="badge px-2 py-1 fs-6"
+                    [ngClass]="stock.changePercent >= 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'">
+                    {{ stock.changePercent >= 0 ? '+' : '' }}{{ stock.changePercent | number:'1.2-2' }}%
+                  </span>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="text-center py-4 text-muted">No stocks found matching your search.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <app-stock-modal 
+    [stock]="selectedStock()" 
+    (closeModal)="closeChartModal()">
+  </app-stock-modal>
+
+</div>

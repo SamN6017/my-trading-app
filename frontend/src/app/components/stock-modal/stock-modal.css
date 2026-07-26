@@ -1,0 +1,8 @@
+.tab-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.fs-7 {
+  font-size: 0.75rem;
+}

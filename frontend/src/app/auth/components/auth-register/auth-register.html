@@ -1,1 +1,54 @@
-<p>auth-register works!</p>
+<div class="container d-flex justify-content-center align-items-center min-vh-100">
+  <div class="card shadow-lg p-4 rounded-4 border-0" style="width: 100%; max-width: 400px;">
+    <div class="card-body">
+      <h3 class="card-title fw-bold text-primary mb-1">Create Account</h3>
+      <p class="text-muted small mb-4">Join to track live stocks and manage portfolios</p>
+
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+        <div class="mb-3">
+          <label for="username" class="form-label fw-semibold small text-secondary">Username</label>
+          <input 
+            id="username" 
+            type="text" 
+            class="form-control form-control-lg fs-6" 
+            formControlName="username" 
+            placeholder="Choose a username" 
+          />
+        </div>
+        <div class="mb-3">
+          <label for="username" class="form-label fw-semibold small text-secondary">Email</label>
+          <input 
+            id="email" 
+            type="email" 
+            class="form-control form-control-lg fs-6" 
+            formControlName="email" 
+            placeholder="email please" 
+          />
+        </div>
+
+        <div class="mb-4">
+          <label for="password" class="form-label fw-semibold small text-secondary">Password</label>
+          <input 
+            id="password" 
+            type="password" 
+            class="form-control form-control-lg fs-6" 
+            formControlName="password" 
+            placeholder="••••••••" 
+          />
+        </div>
+
+        <button 
+          type="submit" 
+          [disabled]="registerForm.invalid" 
+          class="btn btn-primary btn-lg w-100 fw-bold fs-6 mb-3">
+          Register
+        </button>
+      </form>
+
+      <div class="text-center">
+        <span class="small text-muted">Already have an account? </span>
+        <a routerLink="/login" class="small text-decoration-none fw-bold">Sign in</a>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,1 +1,32 @@
-<p>auth-login works!</p>
+<div class="container d-flex justify-content-center align-items-center min-vh-100">
+    <div class="card shadow-lg p-4 rounded-4 border-0" style="width: 100%; max-width: 400px;">
+        <div class="card-body">
+            <h3 class="card-title fw-bold text-primary mb-1">Welcome Back</h3>
+            <p class="text-muted small mb-4">Log in to manage your stock portfolio</p>
+
+            <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+                <div class="mb-3">
+                    <label for="username" class="form-label fw-semibold small text-secondary">Username</label>
+                    <input id="username" type="text" class="form-control form-control-lg fs-6"
+                        formControlName="username" placeholder="Enter your username" />
+                </div>
+
+                <div class="mb-4">
+                    <label for="password" class="form-label fw-semibold small text-secondary">Password</label>
+                    <input id="password" type="password" class="form-control form-control-lg fs-6"
+                        formControlName="password" placeholder="••••••••" />
+                </div>
+
+                <button type="submit" [disabled]="loginForm.invalid"
+                    class="btn btn-primary btn-lg w-100 fw-bold fs-6 mb-3">
+                    Sign In
+                </button>
+            </form>
+
+            <div class="text-center">
+                <span class="small text-muted">Don't have an account? </span>
+                <a routerLink="/register" class="small text-decoration-none fw-bold">Sign up</a>
+            </div>
+        </div>
+    </div>
+</div>

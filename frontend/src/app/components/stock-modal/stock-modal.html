@@ -1,0 +1,67 @@
+<p>stock-modal works!</p>
+@if (stock(); as currentStock) {
+  <div class="modal fade show d-block tab-modal-backdrop" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-content shadow-lg border-0 rounded-4">
+        
+        <!-- Header -->
+        <div class="modal-header border-bottom-0 pb-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+          <div>
+            <div class="d-flex align-items-center gap-2">
+              <h4 class="modal-title fw-bold text-dark mb-0">{{ currentStock.companyName }}</h4>
+              <span class="badge bg-secondary-subtle text-secondary fs-7">{{ currentStock.symbol }}</span>
+            </div>
+            <p class="text-muted small mb-2">{{ currentStock.sector }}</p>
+            
+            <div class="d-flex align-items-center gap-2">
+              <span class="fs-3 fw-bold text-dark">${{ currentStock.currentPrice | number:'1.2-2' }}</span>
+              <span 
+                class="badge px-2 py-1 fs-6" 
+                [ngClass]="currentStock.changePercent >= 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'">
+                {{ currentStock.changePercent >= 0 ? '+' : '' }}{{ currentStock.changePercent | number:'1.2-2' }}%
+                ({{ currentStock.change >= 0 ? '+' : '' }}${{ currentStock.change | number:'1.2-2' }})
+              </span>
+            </div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" (click)="onClose()"></button>
+        </div>
+
+        <!-- Body -->
+        <div class="modal-body p-4">
+          
+          <!-- Dropdown Range Selector -->
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <label for="timeRangeSelect" class="form-label fw-semibold text-secondary mb-0 small">Time Range:</label>
+            <select 
+              id="timeRangeSelect" 
+              class="form-select form-select-sm w-auto rounded-3 shadow-sm"
+              [value]="selectedRange()"
+              (change)="onRangeSelect($event)">
+              @for (range of timeRanges; track range.value) {
+                <option [value]="range.value">{{ range.label }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Chart Area -->
+          <div class="chart-container position-relative" style="height: 320px;">
+            @if (isLoading()) {
+              <div class="position-absolute top-50 start-50 translate-middle text-center">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="small text-muted mt-2">Loading historical prices...</p>
+              </div>
+            }
+            <canvas #chartCanvas></canvas>
+          </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer border-top-0 px-4 pb-4">
+          <button type="button" class="btn btn-secondary rounded-3 px-4" (click)="onClose()">Close</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+}

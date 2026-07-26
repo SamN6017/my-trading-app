@@ -42,6 +42,7 @@ public class SecurityConfiguration {
                     "/actuator/health",      // AWS health check
                     "/api/auth/**",
                     "/api/prices/**",
+                    "/api/stocks/**",
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
                     "/swagger-ui.html"

@@ -16,7 +16,7 @@ public interface PriceHistoryRepository extends JpaRepository<PriceHistory, Long
     @Query(value = """
     SELECT * 
     FROM price_history 
-    WHERE date = (SELECT MAX(date) FROM price_history)
+    WHERE recorded_date = (SELECT MAX(recorded_date) FROM price_history)
     """, nativeQuery = true)
     List<PriceHistory> findLatestClosingPricesForAllStocks();
 }

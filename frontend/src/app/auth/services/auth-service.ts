@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { AuthenticationRequest, AuthenticationResponse, RegisterRequest } from '../../models/auth-models';
 import { Observable, tap } from 'rxjs';
 
@@ -12,6 +12,12 @@ export class AuthService {
   private readonly API_URL = 'https://d33yqmoryj0bxp.cloudfront.net/api/auth'
   // private readonly API_URL = 'http://localhost:8080/api/auth'
 
+  isLoggedIn = signal<boolean>(this.hasToken());
+
+  private hasToken(): boolean {
+    return !!localStorage.getItem('jwt_token');
+  }
+
   register(data : RegisterRequest): Observable<any>{
     return this.http.post(`${this.API_URL}/register`, data);
   }
@@ -21,6 +27,7 @@ export class AuthService {
         tap( response => {
         if(response?.token){
           localStorage.setItem('jwt_token', response.token);
+          this.isLoggedIn.set(true);
         }
       }))
   }

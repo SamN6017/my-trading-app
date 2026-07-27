@@ -1,16 +1,16 @@
-import {
-  Component,
-  ElementRef,
-  ViewChild,
-  inject,
-  input,
-  output,
-  signal,
-  effect
+import { 
+  Component, 
+  ElementRef, 
+  ViewChild, 
+  inject, 
+  input, 
+  output, 
+  signal, 
+  effect 
 } from '@angular/core';
 import { DecimalPipe, NgClass } from '@angular/common';
 import { StockService } from '../../services/stock-service';
-import { StockResponse, TimeRange, PriceHistoryResponse } from '../../models/stock-response';
+import { StockResponse, TimeRange, PriceHistoryResponse, TodaysPrice } from '../../models/stock-response';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -31,10 +31,11 @@ export class StockModal {
   private stockService = inject(StockService);
 
   chart: Chart<'line'> | null = null;
-  selectedRange = signal<TimeRange>('1w');
+  selectedRange = signal<TimeRange>('1d');
   isLoading = signal<boolean>(false);
 
   readonly timeRanges: { label: string; value: TimeRange }[] = [
+    { label: '1 Day (Live Intraday)', value: '1d' },
     { label: '1 Week', value: '1w' },
     { label: '1 Month', value: '1m' },
     { label: '6 Months', value: '6m' },
@@ -45,8 +46,8 @@ export class StockModal {
     effect(() => {
       const currentStock = this.stock();
       if (currentStock) {
-        this.selectedRange.set('1w');
-        this.loadChartData(currentStock.symbol, '1w');
+        this.selectedRange.set('1d');
+        this.loadChartData(currentStock.symbol, '1d');
       }
     });
   }
@@ -55,7 +56,7 @@ export class StockModal {
     const selectElement = event.target as HTMLSelectElement;
     const range = selectElement.value as TimeRange;
     this.selectedRange.set(range);
-
+    
     const currentStock = this.stock();
     if (currentStock) {
       this.loadChartData(currentStock.symbol, range);
@@ -64,31 +65,45 @@ export class StockModal {
 
   loadChartData(symbol: string, range: TimeRange): void {
     this.isLoading.set(true);
-    this.stockService.getPriceHistory(symbol, range).subscribe({
-      next: (data) => {
-        this.renderChart(data);
-        this.isLoading.set(false);
-      },
-      error: (err) => {
-        console.error('Failed to load price history', err);
-        this.isLoading.set(false);
-      }
-    });
+
+    if (range === '1d') {
+      // Intraday 1D route
+      this.stockService.getTodaysPrice(symbol).subscribe({
+        next: (data) => {
+          const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          const prices = data.map(d => d.price ?? 0);
+          this.renderChart(labels, prices);
+          this.isLoading.set(false);
+        },
+        error: (err) => {
+          console.error('Failed to load intraday prices', err);
+          this.isLoading.set(false);
+        }
+      });
+    } else {
+      // Historical routes
+      this.stockService.getPriceHistory(symbol, range).subscribe({
+        next: (data) => {
+          const labels = data.map(h => new Date(h.recordedDate).toLocaleDateString());
+          const prices = data.map(h => h.closePrice ?? 0);
+          this.renderChart(labels, prices);
+          this.isLoading.set(false);
+        },
+        error: (err) => {
+          console.error('Failed to load price history', err);
+          this.isLoading.set(false);
+        }
+      });
+    }
   }
 
-  private renderChart(history: PriceHistoryResponse[]): void {
+  private renderChart(labels: string[], prices: number[]): void {
     if (this.chart) {
       this.chart.destroy();
     }
 
     if (!this.chartCanvas) return;
 
-    const labels = history.map(h => new Date(h['recordedDate']).toLocaleDateString());
-
-    // Ensure prices array is strictly number[] (not number | undefined)
-    const prices: number[] = history.map(h => h.closePrice ?? 0);
-
-    // Safe array access with nullish coalescing
     const firstPrice = prices[0] ?? 0;
     const lastPrice = prices[prices.length - 1] ?? 0;
     const isPositive = prices.length > 1 ? lastPrice >= firstPrice : true;
@@ -108,7 +123,7 @@ export class StockModal {
           borderWidth: 2,
           fill: true,
           tension: 0.2,
-          pointRadius: history.length > 50 ? 0 : 3
+          pointRadius: prices.length > 50 ? 0 : 3
         }]
       },
       options: {
@@ -119,7 +134,7 @@ export class StockModal {
         },
         scales: {
           x: { grid: { display: false } },
-          y: {
+          y: { 
             grid: { color: '#e9ecef' },
             ticks: {
               callback: (value) => `$${value}`

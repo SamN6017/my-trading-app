@@ -19,4 +19,12 @@ export interface PriceHistoryResponse {
   stock?: StockResponse;
 }
 
-export type TimeRange = '1w' | '1m' | '6m' | '1y';
+export type TimeRange = '1d' | '1w' | '1m' | '6m' | '1y';
+
+export interface TodaysPrice {
+  id?: number;
+  symbol: string;
+  price: number;
+  volume: number;
+  timestamp: string;
+}

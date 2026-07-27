@@ -1,7 +1,7 @@
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { PriceHistoryResponse, StockResponse } from '../models/stock-response';
+import { PriceHistoryResponse, StockResponse, TodaysPrice } from '../models/stock-response';
 
 @Injectable({
   providedIn: 'root',
@@ -36,6 +36,12 @@ export class StockService {
       params: params 
     }
   );
+  }
+
+  getTodaysPrice(symbol: string): Observable<TodaysPrice[]> {
+    return this.http.get<TodaysPrice[]>(`${this.BASE_URL}/api/intraday/${symbol}`, {
+      headers: this.getHeader()
+    });
   }
 
 }

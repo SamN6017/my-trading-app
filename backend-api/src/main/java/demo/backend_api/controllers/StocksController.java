@@ -1,6 +1,5 @@
 package demo.backend_api.controllers;
 
-
 import demo.backend_api.dto.StockResponse;
 import demo.backend_api.model.TodaysPrice;
 import demo.backend_api.services.StockService;
@@ -17,13 +16,15 @@ import java.util.List;
 public class StocksController {
 
     private final StockService stockService;
+
     @GetMapping("/stocks")
     public ResponseEntity<List<StockResponse>> getStocks() {
         return ResponseEntity.ok(stockService.getAlltheStocks());
     }
 
-    @GetMapping("/intraday")
-    public ResponseEntity<List<TodaysPrice>> getIntradayStocks(@PathVariable String symbol) {
+    // Fix: Added /{symbol} to path mapping
+    @GetMapping("/intraday/{symbol}")
+    public ResponseEntity<List<TodaysPrice>> getIntradayStocks(@PathVariable("symbol") String symbol) {
         return ResponseEntity.ok(stockService.getTodaysStocks(symbol));
     }
 }

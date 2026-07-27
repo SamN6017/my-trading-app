@@ -2,13 +2,11 @@ package demo.backend_api.controllers;
 
 
 import demo.backend_api.dto.StockResponse;
+import demo.backend_api.model.TodaysPrice;
 import demo.backend_api.services.StockService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -22,5 +20,10 @@ public class StocksController {
     @GetMapping("/stocks")
     public ResponseEntity<List<StockResponse>> getStocks() {
         return ResponseEntity.ok(stockService.getAlltheStocks());
+    }
+
+    @GetMapping("/intraday")
+    public ResponseEntity<List<TodaysPrice>> getIntradayStocks(@PathVariable String symbol) {
+        return ResponseEntity.ok(stockService.getTodaysStocks(symbol));
     }
 }

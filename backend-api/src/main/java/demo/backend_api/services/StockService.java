@@ -36,6 +36,12 @@ public class StockService {
         return stocks.stream().map(stock -> mapStockToStockResponse(stock, previousCloses)).collect(Collectors.toList());
     }
 
+
+    public List<TodaysPrice> getTodaysStocks(String symbol) {
+        return todaysPriceRepository.findBySymbolOrderByTimestampAsc(symbol);
+    }
+
+
     private StockResponse mapStockToStockResponse(Stock stock, Map<String, Double> previousCloses) {
         // 1. Safely handle missing historical close price (fallback to 0.0 if null)
         Double previousClose = previousCloses.get(stock.getSymbol());

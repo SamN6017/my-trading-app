@@ -39,7 +39,7 @@ export class StockService {
   }
 
   getTodaysPrice(symbol: string): Observable<TodaysPrice[]> {
-    return this.http.get<TodaysPrice[]>(`${this.BASE_URL}/api/intraday/${symbol}`, {
+    return this.http.get<TodaysPrice[]>(`${this.BASE_URL}/intraday/${symbol}`, {
       headers: this.getHeader()
     });
   }

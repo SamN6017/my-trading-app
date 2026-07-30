@@ -80,7 +80,7 @@ export class StockModalComponent {
       // 1D INTRADAY: Aggregate raw minute entries into 5-minute Candlesticks
       this.stockService.getTodaysPrice(symbol).subscribe({
         next: (data) => {
-          const candleData = this.aggregateToIntradayCandles(data, 5); // 5-minute interval
+          const candleData = this.aggregateToIntradayCandles(data, 1); // 5-minute interval
           this.renderCandlestickChart(candleData);
           this.isLoading.set(false);
         },

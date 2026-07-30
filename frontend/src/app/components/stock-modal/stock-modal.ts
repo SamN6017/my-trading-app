@@ -10,10 +10,13 @@ import {
 } from '@angular/core';
 import { DecimalPipe, NgClass } from '@angular/common';
 import { StockService } from '../../services/stock-service';
-import { StockResponse, TimeRange, PriceHistoryResponse, TodaysPrice } from '../../models/stock-response';
+import { StockResponse, TimeRange, PriceHistoryResponse } from '../../models/stock-response';
 import { Chart, registerables } from 'chart.js';
+import 'chartjs-adapter-luxon';
+import { CandlestickController, CandlestickElement } from 'chartjs-chart-financial';
 
-Chart.register(...registerables);
+// Register standard Chart.js components + Candlestick plugins
+Chart.register(...registerables, CandlestickController, CandlestickElement);
 
 @Component({
   selector: 'app-stock-modal',
@@ -30,12 +33,12 @@ export class StockModal {
 
   private stockService = inject(StockService);
 
-  chart: Chart<'line'> | null = null;
-  selectedRange = signal<TimeRange>('1d');
+  chart: Chart | null = null;
+  selectedRange = signal<TimeRange>('1w');
   isLoading = signal<boolean>(false);
 
   readonly timeRanges: { label: string; value: TimeRange }[] = [
-    { label: '1 Day (Live Intraday)', value: '1d' },
+    { label: '1 Day (Live)', value: '1d' },
     { label: '1 Week', value: '1w' },
     { label: '1 Month', value: '1m' },
     { label: '6 Months', value: '6m' },
@@ -46,8 +49,8 @@ export class StockModal {
     effect(() => {
       const currentStock = this.stock();
       if (currentStock) {
-        this.selectedRange.set('1d');
-        this.loadChartData(currentStock.symbol, '1d');
+        this.selectedRange.set('1w');
+        this.loadChartData(currentStock.symbol, '1w');
       }
     });
   }
@@ -69,25 +72,15 @@ export class StockModal {
     if (range === '1d') {
       this.stockService.getTodaysPrice(symbol).subscribe({
         next: (data) => {
-          // 1. Ensure UTC string format ends with 'Z' for proper Date parsing
           const parsedData = data.map(d => {
             const timestampStr = d.timestamp.endsWith('Z') ? d.timestamp : `${d.timestamp}Z`;
             return {
-              date: new Date(timestampStr),
-              price: d.price ?? 0
+              x: new Date(timestampStr).getTime(),
+              y: d.price ?? 0
             };
-          });
+          }).filter(item => new Date(item.x).getHours() >= 8);
 
-          // 2. Filter out pre-market data before 8:00 AM EST (Local Browser Time)
-          const filteredData = parsedData.filter(item => item.date.getHours() >= 8);
-
-          // 3. Format labels into 12-hour local time (e.g., "09:30 AM")
-          const labels = filteredData.map(item =>
-            item.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          );
-          const prices = filteredData.map(item => item.price);
-
-          this.renderChart(labels, prices);
+          this.renderLineChart(parsedData);
           this.isLoading.set(false);
         },
         error: (err) => {
@@ -96,12 +89,18 @@ export class StockModal {
         }
       });
     } else {
-      // Historical routes
       this.stockService.getPriceHistory(symbol, range).subscribe({
         next: (data) => {
-          const labels = data.map(h => new Date(h.recordedDate).toLocaleDateString());
-          const prices = data.map(h => h.closePrice ?? 0);
-          this.renderChart(labels, prices);
+          // Map backend history into OHLC candlestick format { x, o, h, l, c }
+          const candleData = data.map(h => ({
+            x: new Date(h.recordedDate).getTime(),
+            o: h.openPrice ?? h.closePrice,
+            h: h.highPrice ?? h.closePrice,
+            l: h.lowPrice ?? h.closePrice,
+            c: h.closePrice
+          }));
+
+          this.renderCandlestickChart(candleData);
           this.isLoading.set(false);
         },
         error: (err) => {
@@ -112,48 +111,108 @@ export class StockModal {
     }
   }
 
-  private renderChart(labels: string[], prices: number[]): void {
+  private renderCandlestickChart(candleData: Array<{ x: number; o: number; h: number; l: number; c: number }>): void {
     if (this.chart) {
       this.chart.destroy();
     }
 
     if (!this.chartCanvas) return;
 
-    const firstPrice = prices[0] ?? 0;
-    const lastPrice = prices[prices.length - 1] ?? 0;
-    const isPositive = prices.length > 1 ? lastPrice >= firstPrice : true;
-
-    const strokeColor = isPositive ? '#198754' : '#dc3545';
-    const fillColor = isPositive ? 'rgba(25, 135, 84, 0.1)' : 'rgba(220, 53, 69, 0.1)';
-
     this.chart = new Chart(this.chartCanvas.nativeElement, {
-      type: 'line',
+      type: 'candlestick',
       data: {
-        labels: labels,
         datasets: [{
-          label: `${this.stock()?.symbol} Price ($)`,
-          data: prices,
-          borderColor: strokeColor,
-          backgroundColor: fillColor,
-          borderWidth: 2,
-          fill: true,
-          tension: 0.2,
-          pointRadius: prices.length > 50 ? 0 : 3
-        }]
+          label: `${this.stock()?.symbol} Price`,
+          data: candleData as any,
+          // Standard property names for chartjs-chart-financial datasets:
+          color: {
+            up: '#198754',
+            down: '#dc3545',
+            unchanged: '#6c757d'
+          },
+          borderColor: {
+            up: '#198754',
+            down: '#dc3545',
+            unchanged: '#6c757d'
+          }
+        } as any] // Cast dataset to 'any' to bypass strict ChartDataset union checks
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false }
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx: any) => {
+                const raw = ctx.raw;
+                if (!raw) return '';
+                return [
+                  `Open:  $${raw.o?.toFixed(2)}`,
+                  `High:  $${raw.h?.toFixed(2)}`,
+                  `Low:   $${raw.l?.toFixed(2)}`,
+                  `Close: $${raw.c?.toFixed(2)}`
+                ];
+              }
+            }
+          }
         },
         scales: {
-          x: { grid: { display: false } },
+          x: {
+            type: 'time',
+            time: {
+              unit: 'day'
+            },
+            grid: { display: false }
+          },
           y: {
             grid: { color: '#e9ecef' },
             ticks: {
               callback: (value) => `$${value}`
             }
+          }
+        }
+      }
+    });
+  }
+
+  private renderLineChart(dataPoints: Array<{ x: number; y: number }>): void {
+    if (this.chart) {
+      this.chart.destroy();
+    }
+
+    if (!this.chartCanvas) return;
+
+    const prices = dataPoints.map(p => p.y);
+    const isPositive = prices.length > 1 ? prices[prices.length - 1] >= prices[0] : true;
+
+    this.chart = new Chart(this.chartCanvas.nativeElement, {
+      type: 'line',
+      data: {
+        datasets: [{
+          label: `${this.stock()?.symbol} Price ($)`,
+          data: dataPoints as any,
+          borderColor: isPositive ? '#198754' : '#dc3545',
+          backgroundColor: isPositive ? 'rgba(25, 135, 84, 0.1)' : 'rgba(220, 53, 69, 0.1)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.2,
+          pointRadius: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            type: 'time',
+            time: { unit: 'hour' },
+            grid: { display: false }
+          },
+          y: {
+            grid: { color: '#e9ecef' },
+            ticks: { callback: (val) => `$${val}` }
           }
         }
       }

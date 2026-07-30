@@ -1,12 +1,12 @@
-import { 
-  Component, 
-  ElementRef, 
-  ViewChild, 
-  inject, 
-  input, 
-  output, 
-  signal, 
-  effect 
+import {
+  Component,
+  ElementRef,
+  ViewChild,
+  inject,
+  input,
+  output,
+  signal,
+  effect
 } from '@angular/core';
 import { DecimalPipe, NgClass } from '@angular/common';
 import { StockService } from '../../services/stock-service';
@@ -56,7 +56,7 @@ export class StockModal {
     const selectElement = event.target as HTMLSelectElement;
     const range = selectElement.value as TimeRange;
     this.selectedRange.set(range);
-    
+
     const currentStock = this.stock();
     if (currentStock) {
       this.loadChartData(currentStock.symbol, range);
@@ -67,11 +67,26 @@ export class StockModal {
     this.isLoading.set(true);
 
     if (range === '1d') {
-      // Intraday 1D route
       this.stockService.getTodaysPrice(symbol).subscribe({
         next: (data) => {
-          const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-          const prices = data.map(d => d.price ?? 0);
+          // 1. Ensure UTC string format ends with 'Z' for proper Date parsing
+          const parsedData = data.map(d => {
+            const timestampStr = d.timestamp.endsWith('Z') ? d.timestamp : `${d.timestamp}Z`;
+            return {
+              date: new Date(timestampStr),
+              price: d.price ?? 0
+            };
+          });
+
+          // 2. Filter out pre-market data before 8:00 AM EST (Local Browser Time)
+          const filteredData = parsedData.filter(item => item.date.getHours() >= 8);
+
+          // 3. Format labels into 12-hour local time (e.g., "09:30 AM")
+          const labels = filteredData.map(item =>
+            item.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          );
+          const prices = filteredData.map(item => item.price);
+
           this.renderChart(labels, prices);
           this.isLoading.set(false);
         },
@@ -134,7 +149,7 @@ export class StockModal {
         },
         scales: {
           x: { grid: { display: false } },
-          y: { 
+          y: {
             grid: { color: '#e9ecef' },
             ticks: {
               callback: (value) => `$${value}`

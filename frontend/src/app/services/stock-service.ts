@@ -8,7 +8,6 @@ import { PriceHistoryResponse, StockResponse, TodaysPrice } from '../models/stoc
 })
 export class StockService {
   private http = inject(HttpClient);
-  // private BASE_URL = 'http://my-trading-app-env.eba-imuwyubr.us-east-2.elasticbeanstalk.com/api/'
    private BASE_URL = 'https://d33yqmoryj0bxp.cloudfront.net/api'
   // private BASE_URL = 'http://localhost:8080/api'
 
